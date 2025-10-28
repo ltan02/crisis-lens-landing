@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { gsap } from 'gsap';
 
 // Platform icons as SVG components
@@ -22,8 +22,8 @@ const TikTokIcon = ({ className = "" }) => (
   </svg>
 );
 
-// Mock video thumbnail component
-const VideoThumbnail = ({ 
+// Mock video thumbnail component - optimized for performance
+const VideoThumbnail = React.forwardRef(({ 
   title, 
   platform, 
   likes, 
@@ -31,79 +31,9 @@ const VideoThumbnail = ({
   shares, 
   rotation = 0, 
   scale = 1,
-  delay = 0,
   className = "",
-  popInterval = 0,
-  randomPosition = false,
   imageSrc = null
-}) => {
-  const thumbnailRef = useRef(null);
-
-  useEffect(() => {
-    if (thumbnailRef.current && popInterval > 0) {
-      // Create continuous pop-up animation
-      const popUp = () => {
-        // Random position if specified - spread across entire panel
-        if (randomPosition) {
-          const x = Math.random() * 400 - 200; // -200px to 200px (full width)
-          const y = Math.random() * 300 - 150; // -150px to 150px (full height)
-          thumbnailRef.current.style.position = 'fixed';
-          thumbnailRef.current.style.left = `calc(50% + ${x}px)`;
-          thumbnailRef.current.style.top = `calc(50% + ${y}px)`;
-          thumbnailRef.current.style.zIndex = '99999';
-        }
-
-        // Pop up animation - no rotation
-        gsap.fromTo(thumbnailRef.current, 
-          { 
-            opacity: 0, 
-            scale: 0.3,
-            zIndex: 99999
-          },
-          { 
-            opacity: 1, 
-            scale: scale,
-            duration: 0.6,
-            ease: "back.out(2)",
-            onComplete: () => {
-              // Fade out after a delay
-              gsap.to(thumbnailRef.current, {
-                opacity: 0,
-                scale: 0.8,
-                duration: 0.8,
-                delay: 2 + Math.random() * 3, // 2-5 seconds visible
-                ease: "power2.in",
-                onComplete: () => {
-                  // Schedule next pop-up
-                  setTimeout(popUp, Math.random() * popInterval);
-                }
-              });
-            }
-          }
-        );
-      };
-
-      // Start the first pop-up after initial delay
-      setTimeout(popUp, delay * 1000);
-    } else if (thumbnailRef.current) {
-      // Static entrance animation for videos without pop-up
-      gsap.fromTo(thumbnailRef.current, 
-        { 
-          opacity: 0, 
-          scale: 0.8,
-          rotation: rotation + 10
-        },
-        { 
-          opacity: 1, 
-          scale: scale,
-          rotation: rotation,
-          duration: 0.8,
-          delay: delay,
-          ease: "back.out(1.7)"
-        }
-      );
-    }
-  }, [rotation, scale, delay, popInterval, randomPosition]);
+}, ref) => {
 
   const getPlatformColor = () => {
     switch(platform) {
@@ -125,12 +55,10 @@ const VideoThumbnail = ({
 
   return (
     <div 
-      ref={thumbnailRef}
+      ref={ref}
       className={`bg-gray-800 rounded-lg p-3 shadow-lg border border-gray-700 ${className}`}
       style={{ 
-        transform: `rotate(${rotation}deg) scale(${scale})`,
-        position: randomPosition ? 'fixed' : 'absolute',
-        zIndex: randomPosition ? 99999 : 'auto'
+        transform: `rotate(${rotation}deg) scale(${scale})`
       }}
     >
       {/* Video thumbnail area */}
@@ -178,179 +106,175 @@ const VideoThumbnail = ({
       </div>
     </div>
   );
-};
+});
+
+// Video data - moved outside component to prevent recreation
+const videoData = [
+  {
+    title: "BREAKING: Wildfire spreads rapidly in California",
+    imageSrc: "https://i.ytimg.com/vi/5hghT1W33cY/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBWeXthOt_9I3FOIH5ZN4LWaB0qqg",
+    platform: "twitter",
+    likes: "2.3K",
+    comments: "156",
+    shares: "89",
+    rotation: 0,
+    scale: 0.9,
+    delay: 0.5,
+    popInterval: 3000
+  },
+  {
+    title: "Devastating floods hit Pakistan - families displaced",
+    imageSrc: "https://i.ytimg.com/vi/84ccx0EpAvw/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8wmwM-MhUEJ0quzEMJYhrii2kSA",
+    platform: "instagram",
+    likes: "5.7K",
+    comments: "234",
+    shares: "67",
+    rotation: 0,
+    scale: 1.1,
+    delay: 1.0,
+    popInterval: 2500
+  },
+  {
+    title: "Earthquake aftermath in Turkey - rescue efforts continue",
+    imageSrc: "https://i.ytimg.com/vi/PDAndLrvzfk/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhjIGMoYzAP&rs=AOn4CLC3tbqVA7ZYbctl8na0Ag0s43ytaQ",
+    platform: "tiktok",
+    likes: "12.1K",
+    comments: "892",
+    shares: "234",
+    rotation: 0,
+    scale: 0.85,
+    delay: 1.5,
+    popInterval: 4000
+  },
+  {
+    title: "Hurricane damage in Florida - power outages widespread",
+    imageSrc: "https://i.ytimg.com/vi/xhGrVh2nDwI/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDy9WSrh0E9rZt1vyi4N2hxBEUCvw",
+    platform: "twitter",
+    likes: "8.9K",
+    comments: "445",
+    shares: "123",
+    rotation: 0,
+    scale: 1.05,
+    delay: 2.0,
+    popInterval: 3500
+  },
+  {
+    title: "Drought crisis in Africa - crops failing",
+    imageSrc: "https://i.ytimg.com/vi/obdmn6eWMF4/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB1AaAAuADigIMCAAQARhyIEcoNzAP&rs=AOn4CLCJtQHWKe3HVGmPTC3Prws3GO9SVQ",
+    platform: "instagram",
+    likes: "3.2K",
+    comments: "178",
+    shares: "45",
+    rotation: 0,
+    scale: 0.95,
+    delay: 2.5,
+    popInterval: 2800
+  }
+];
 
 export default function SocialMediaChaos() {
   const containerRef = useRef(null);
+  const videoRefs = useRef([]);
 
+  // Memoize video thumbnails to prevent unnecessary re-renders
+  const videoThumbnails = useMemo(() => 
+    videoData.map((video, index) => (
+      <VideoThumbnail
+        key={index}
+        ref={(el) => videoRefs.current[index] = el}
+        title={video.title}
+        imageSrc={video.imageSrc}
+        platform={video.platform}
+        likes={video.likes}
+        comments={video.comments}
+        shares={video.shares}
+        rotation={video.rotation}
+        scale={video.scale}
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+      />
+    )), []
+  );
+
+  // Centralized animation system - single useEffect
   useEffect(() => {
-    if (containerRef.current) {
-      // Animate the entire container
-      gsap.fromTo(containerRef.current, 
-        { opacity: 0, y: 50 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.5, ease: "power2.out" }
-      );
-    }
+    if (!containerRef.current) return;
+
+    // Initial container animation
+    gsap.fromTo(containerRef.current, 
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 1, delay: 0.5, ease: "power2.out" }
+    );
+
+    // Centralized pop-up animation system
+    const createPopUpAnimation = (videoRef, videoData) => {
+      if (!videoRef) return;
+
+      const animatePopUp = () => {
+        // Random position calculation
+        const x = Math.random() * 400 - 200;
+        const y = Math.random() * 300 - 150;
+        
+        // Set random position
+        gsap.set(videoRef, {
+          position: 'fixed',
+          left: `calc(50% + ${x}px)`,
+          top: `calc(50% + ${y}px)`,
+          zIndex: 99999
+        });
+
+        // Pop-up animation
+        gsap.fromTo(videoRef, 
+          { 
+            opacity: 0, 
+            scale: 0.3
+          },
+          { 
+            opacity: 1, 
+            scale: videoData.scale,
+            duration: 0.6,
+            ease: "back.out(2)",
+            onComplete: () => {
+              // Fade out after delay
+              gsap.to(videoRef, {
+                opacity: 0,
+                scale: 0.8,
+                duration: 0.8,
+                delay: 2 + Math.random() * 3,
+                ease: "power2.in",
+                onComplete: () => {
+                  // Schedule next pop-up
+                  setTimeout(() => animatePopUp(), Math.random() * videoData.popInterval);
+                }
+              });
+            }
+          }
+        );
+      };
+
+      // Start first animation after delay
+      setTimeout(() => animatePopUp(), videoData.delay * 1000);
+    };
+
+    // Initialize animations for each video
+    videoRefs.current.forEach((videoRef, index) => {
+      if (videoRef && videoData[index]) {
+        createPopUpAnimation(videoRef, videoData[index]);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      videoRefs.current.forEach(videoRef => {
+        if (videoRef) {
+          gsap.killTweensOf(videoRef);
+        }
+      });
+    };
   }, []);
 
   return (
     <div ref={containerRef} className="relative w-full h-[500px] overflow-visible" style={{ perspective: '1000px' }}>
-      {/* Constantly popping up video thumbnails */}
-      <VideoThumbnail
-        title="BREAKING: Wildfire spreads rapidly in California"
-        imageSrc={"https://i.ytimg.com/vi/5hghT1W33cY/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBWeXthOt_9I3FOIH5ZN4LWaB0qqg"}
-        platform="twitter"
-        likes="2.3K"
-        comments="156"
-        shares="89"
-        rotation={0}
-        scale={0.9}
-        delay={0.5}
-        popInterval={3000}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Devastating floods hit Pakistan - families displaced"
-        imageSrc={"https://i.ytimg.com/vi/84ccx0EpAvw/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8wmwM-MhUEJ0quzEMJYhrii2kSA"}
-        platform="instagram"
-        likes="5.7K"
-        comments="234"
-        shares="67"
-        rotation={0}
-        scale={1.1}
-        delay={1.0}
-        popInterval={2500}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Earthquake aftermath in Turkey - rescue efforts continue"
-        imageSrc={"https://i.ytimg.com/vi/PDAndLrvzfk/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhjIGMoYzAP&rs=AOn4CLC3tbqVA7ZYbctl8na0Ag0s43ytaQ"}
-        platform="tiktok"
-        likes="12.1K"
-        comments="892"
-        shares="234"
-        rotation={0}
-        scale={0.85}
-        delay={1.5}
-        popInterval={4000}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Hurricane damage in Florida - power outages widespread"
-        imageSrc={"https://i.ytimg.com/vi/xhGrVh2nDwI/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDy9WSrh0E9rZt1vyi4N2hxBEUCvw"}
-        platform="twitter"
-        likes="8.9K"
-        comments="445"
-        shares="123"
-        rotation={0}
-        scale={1.05}
-        delay={2.0}
-        popInterval={3500}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Drought crisis in Africa - crops failing"
-        imageSrc={"https://i.ytimg.com/vi/obdmn6eWMF4/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB1AaAAuADigIMCAAQARhyIEcoNzAP&rs=AOn4CLCJtQHWKe3HVGmPTC3Prws3GO9SVQ"}
-        platform="instagram"
-        likes="3.2K"
-        comments="178"
-        shares="45"
-        rotation={0}
-        scale={0.95}
-        delay={2.5}
-        popInterval={2800}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Volcanic eruption in Iceland - ash cloud spreading"
-        imageSrc={"https://i.ytimg.com/vi/L4qDgsyFw7M/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBNKKS52XRF0lygEOLW5pas6qVL7g"}
-        platform="tiktok"
-        likes="15.6K"
-        comments="1.2K"
-        shares="456"
-        rotation={0}
-        scale={1.0}
-        delay={3.0}
-        popInterval={3200}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      {/* Additional pop-up videos */}
-      <VideoThumbnail
-        title="Heatwave hits Europe - record temperatures"
-        imageSrc={"https://i.ytimg.com/vi/OUJiTZtIlR4/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhlIFMoQDAP&rs=AOn4CLDKlG2KPVLf8F8oEha2SsAtwFT-ng"}
-        platform="twitter"
-        likes="4.2K"
-        comments="312"
-        shares="89"
-        rotation={0}
-        scale={0.8}
-        delay={3.5}
-        popInterval={4500}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Cyclone devastates Bangladesh coastline"
-        imageSrc={"https://i.ytimg.com/vi/foxww-tMoNg/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDvFwTa0isVCFQhVMvSS354hNfDVw"}
-        platform="instagram"
-        likes="7.8K"
-        comments="445"
-        shares="156"
-        rotation={0}
-        scale={1.2}
-        delay={4.0}
-        popInterval={2200}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Avalanche buries ski resort in Switzerland"
-        imageSrc={"https://i.ytimg.com/vi/Kh0_7tEqePI/hq720.jpg?sqp=-oaymwE2CNAFEJQDSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhOIFcoZTAP&rs=AOn4CLCJbvV8EvasWJ_jWiVhyDL0Z155Vg"}
-        platform="tiktok"
-        likes="9.1K"
-        comments="678"
-        shares="234"
-        rotation={0}
-        scale={0.7}
-        delay={4.5}
-        popInterval={3800}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <VideoThumbnail
-        title="Tsunami warning issued for Japan"
-        imageSrc={"https://i.ytimg.com/vi/3618dZoiaPE/hqdefault.jpg?sqp=-oaymwE2COADEI4CSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gSAAuADigIMCAAQARhlIGUoZTAP&rs=AOn4CLAn9JV2hLupVROHxjmg5vsxEKDMNw"}
-        platform="twitter"
-        likes="11.3K"
-        comments="892"
-        shares="345"
-        rotation={0}
-        scale={1.1}
-        delay={5.0}
-        popInterval={2600}
-        randomPosition={true}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      {/* Notification badges */}
-
-   
-   
+      {videoThumbnails}
     </div>
   );
 }
